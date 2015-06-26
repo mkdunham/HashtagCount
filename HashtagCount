@@ -1,0 +1,15 @@
+REGISTER /user/hue/json-simple-1.1.1.jar;
+REGISTER /user/hue/elephant-bird-core-4.9.jar;
+REGISTER /user/hue/elephant-bird-pig-4.9.jar;
+REGISTER /user/hue/elephant-bird-hadoop-compat-4.9.jar;
+
+tweets_raw = LOAD '/user/hue/upload/upload/data/tweets_raw' USING com.twitter.elephantbird.pig.load.JsonLoader('-nestedLoad')as (json: map[]);
+tweets_entities = FOREACH tweets_raw GENERATE json#'entities' as (entities: map[]);
+tweets_hashtags = FOREACH tweets_entities GENERATE flatten(entities#'hashtags') as (hashtags: map[]);
+tweets_hashtags_text = FOREACH tweets_hashtags GENERATE (chararray)hashtags#'text' as hashtag_text;
+tweets_hashtags_text_group = GROUP tweets_hashtags_text BY hashtag_text;
+tweets_hashtags_text_count = FOREACH tweets_hashtags_text_group GENERATE group, (int)COUNT(tweets_hashtags_text) AS total;
+tweets_hashtags_text_order = ORDER tweets_hashtags_text_count BY total DESC;
+tweets_hashtags_text_order_TOP = LIMIT tweets_hashtags_text_order 100;
+
+dump tweets_hashtags_text_order_TOP;
